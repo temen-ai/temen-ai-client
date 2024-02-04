@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Image, Button, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity, Text, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+
 import { Input } from 'react-native-elements';
 import { createClient } from '@supabase/supabase-js';
-import { supabaseUrl, supabaseAnonKey } from '../config/supabaseConfig.js'; // Import your Supabase config
+import { supabaseUrl, supabaseAnonKey } from '../config/supabaseConfig.js';
 import { useNavigation } from '@react-navigation/native';
 import { useUser } from './UserContext';
+import { getUser } from '../helpers/user.js';
+import StyleWrapper from './StyleWrapper.js';
 // Initialize Supabase client
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -15,22 +18,30 @@ const AuthScreen = () => {
   const [message, setMessage] = useState('');
   const { setUser } = useUser();
 
+  const [loading, isLoading] = useState(false);
+
   const navigation = useNavigation();
   // Handle login with Supabase
   const handleLogin = async () => {
     try {
     const { data: { user, session }, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;  // If there's an error, throw it to be caught by the catch block
-      
-      console.log('Logged in:', user, session);
-      setUser({
-        ...user, // Spread user data
-        token: session.access_token, // Save the access token
-      });
-      console.log(session)
-      // setUser(user); // Uncomment if you have setUser function available to manage global user state
-      navigation.replace('Your Chats'); // Navigate to 'YourChats' screen. Make sure navigation prop is passed to this component
-      setMessage('Logged in successfully!'); // You can set a success message
+      isLoading(true);
+      getUser(session.access_token).then((data) => {
+        isLoading(false);
+        setUser({
+          token: session.access_token,
+          ...data.data
+        })
+        console.log({
+
+          token: session.access_token,
+          ...data.data
+        })
+        navigation.replace('Main')
+        setMessage('Logged in successfully!')
+      })
+
     } catch (error) {
       console.error('Error logging in:', error.message);
       setMessage(error.message); // Display error message
@@ -57,49 +68,63 @@ const AuthScreen = () => {
   
 
   return (
-<   View style={styles.container}>
-      <Image source={{ uri: imageUrl }} style={styles.image} />
-      <Input
-        placeholder="Email"
-        leftIcon={{ type: 'font-awesome', name: 'envelope', color: '#1e90ff' }}
-        inputContainerStyle={styles.inputContainer}
-        inputStyle={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <Input
-        placeholder="Password"
-        leftIcon={{ type: 'font-awesome', name: 'lock', color: '#1e90ff' }}
-        inputContainerStyle={styles.inputContainer}
-        inputStyle={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
-      {/* Display message */}
-      {!!message && <Text style={styles.messageText}>{message}</Text>}
-    </View>
+    <StyleWrapper>
+      {!loading ?
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardAvoidingView}>
+          <View style={styles.container}>
+            <Image source={{ uri: imageUrl }} style={styles.image} />
+            <Input
+              placeholder="Email"
+              leftIcon={{ type: 'font-awesome', name: 'envelope', color: '#1e90ff' }}
+              inputContainerStyle={styles.inputContainer}
+              inputStyle={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <Input
+              placeholder="Password"
+              leftIcon={{ type: 'font-awesome', name: 'lock', color: '#1e90ff' }}
+              inputContainerStyle={styles.inputContainer}
+              inputStyle={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+            <TouchableOpacity style={styles.button} onPress={handleLogin}>
+              <Text style={styles.buttonText}>Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={handleRegister}>
+              <Text style={styles.buttonText}>Register</Text>
+            </TouchableOpacity>
+            {/* Display message */}
+            {!!message && <Text style={styles.messageText}>{message}</Text>}
+          </View>
+        </KeyboardAvoidingView>
+        :
+        <ActivityIndicator size="large" color="#1e90ff" />
+      }
+    </StyleWrapper>
   );
 };
 
 
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#191919', // Dark background
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-      },
+  keyboardAvoidingView: {
+    flex: 1,
+    width: '100%', // Ensure it covers the whole screen width
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#191919',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
       inputContainer: {
         borderBottomWidth: 0, // Remove underline
         backgroundColor: 'rgba(255, 255, 255, 0.2)', // Slightly transparent white background

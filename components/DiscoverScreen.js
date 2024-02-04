@@ -4,77 +4,122 @@ import Swiper from 'react-native-swiper'; // Import Swiper
 import CharacterPreviewBar from './CharacterPreviewBar'; // Import the new component
 import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native'; // Import useNavigation hook
+import StyleWrapper from './StyleWrapper.js';
 import React, { useState, useEffect } from 'react';
-import TabBar from './TabBar';
+import { useFocusEffect } from '@react-navigation/native'; 
+import LoadingPlaceholder from './LoadingPlaceholder';
+import {fetchAllCharacters} from '../helpers/characters.js';
+
 import axios from 'axios';
 import { useUser } from './UserContext';
+import LoadingPlaceholderItem from './LoadingPlaceholderItem';
 
 const DiscoverScreen = () => {
   const navigation = useNavigation();
   const [searchTerm, setSearchTerm] = useState('');
-  const [characterData, setCharacterData] = useState([]); // State to hold character data
+  const [characterData, setCharacterData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(2);
+  const [hasMore, setHasMore] = useState(true);
 
-  const { user } = useUser(); 
+  const { user } = useUser();
 
-  //if user is not logged in, redirect to login screen
-  if (!user) {
-    navigation.replace('Login');
-  }
+  // Redirect to login if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigation.replace('Login');
+    }
+  }, [user, navigation]);
 
+  const fetchMoreData = (page) => {
+    if (!hasMore) return;
+    setIsLoading(true);
+    const offset = (page - 1) * itemsPerPage;
 
-  // Function to fetch character data from backend
-  const fetchCharacterData = async () => {
-    console.log(user.token)
-    try {
-      const response = await axios.get('https://teman-ai-server-930de02b860a.herokuapp.com/characters/', {
-        headers: {
-          Authorization: `Bearer ${user.token}`, // Use the access token from the user object
-        },
+    fetchAllCharacters(user.token, searchTerm, itemsPerPage, offset)
+      .then((newData) => {
+        if (newData.length < itemsPerPage) {
+          setHasMore(false);
+        }
+        if (searchTerm) {
+          // If searching, reset character data with new data
+          setCharacterData(newData);
+        } else {
+          // If not searching, filter out duplicates
+          setCharacterData(prevData => {
+            const combinedData = [...prevData, ...newData];
+            const uniqueData = combinedData.filter((item, index, self) =>
+              index === self.findIndex((t) => (t.id === item.id))
+            );
+            return uniqueData;
+          });
+        }
+        setCurrentPage(page);
+      })
+      .catch((error) => {
+        console.error('Error while fetching data:', error);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
+  };
 
-      setCharacterData(response.data.data); // Set character data from backend response
-    } catch (error) {
-      console.error('Error fetching character data:', error);
-      // Handle error appropriately
+  // onChangeText handler for the search input
+  const handleSearchChange = (text) => {
+    setSearchTerm(text);
+    setCharacterData([]); // Reset character data
+    setHasMore(true); // Reset hasMore
+    setCurrentPage(1); // Reset currentPage to start from the beginning
+  
+    // Fetch first page data. This will be search data if text is not empty,
+    // or default data if search bar is cleared (text is empty).
+    fetchMoreData(1);
+  };
+  
+
+  useEffect(() => {
+    setHasMore(true);
+    fetchMoreData(1);
+  }, [searchTerm]);
+
+  const handleEndReached = () => {
+    if (!isLoading && hasMore) {
+      fetchMoreData(currentPage + 1);
     }
   };
 
-  // Use useEffect to fetch character data when component mounts
-  useEffect(() => {
-    fetchCharacterData();
-  }, []); // Empty dependency array means this effect runs once on mount
-
-
-
-  const filteredCharacters = characterData.filter(character =>
-    character.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.searchBar}
-        placeholderTextColor="#757575" 
-        placeholder="🔍Search Characters..."
-        value={searchTerm}
-        onChangeText={setSearchTerm}
-      />
-      <FlatList
-        data={filteredCharacters}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => navigation.navigate('Chat', { character: item })}>
-            <CharacterPreviewBar
-              name={item.name}
-              description={item.description}
-              profilePic={item.pfp}
-              id={item.id}
-            />
-          </TouchableOpacity>
-        )}
-        keyExtractor={item => item.id}
-      />
-      <TabBar isActive={true} />
-    </View>
+    <StyleWrapper>
+      <View style={styles.container}>
+        <TextInput
+          style={styles.searchBar}
+          placeholderTextColor="#757575"
+          placeholder="🔍Search Characters..."
+          value={searchTerm}
+          onChangeText={handleSearchChange}          
+        />
+
+        <FlatList
+          data={characterData}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => navigation.navigate('Chat', { character: item })}>
+              <CharacterPreviewBar
+                name={item.name}
+                description={item.description}
+                profilePic={item.pfp}
+                messages_count={item.messages_count}
+                id={item.id}
+              />
+            </TouchableOpacity>
+          )}
+          keyExtractor={item => item.id.toString()}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.1}
+          ListFooterComponent={isLoading && <LoadingPlaceholderItem />}
+        />
+      </View>
+    </StyleWrapper>
   );
 };
 
@@ -117,6 +162,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
 });
 
 

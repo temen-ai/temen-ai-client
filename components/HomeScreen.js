@@ -4,19 +4,22 @@ import Swiper from 'react-native-swiper'; // Import Swiper
 import CharacterPreviewBar from './CharacterPreviewBar'; // Import the new component
 import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native'; // Import useNavigation hook
-import TabBar from './TabBar';
+import StyleWrapper from './StyleWrapper';
 import { useUser } from './UserContext';
+import { fetchActiveCharacters } from '../helpers/characters.js';
+import LoadingPlaceholder from './LoadingPlaceholder';
 import axios from 'axios';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
   const [characterData, setCharacterData] = useState([]); // State to hold character data
+  const [isLoading, setIsLoading] = useState(true); // State to track loading
 
   const { user } = useUser(); 
   //if user is not logged in, redirect to login screen
-  if (!user) {
-      navigation.replace('Login');
-  }
+  // if (!user) {
+  //     navigation.replace('Login');
+  // }
   // Sample data for the swiper and character list
   const swiperImages = [
     'https://www.temen.ai/wp-content/uploads/2024/01/temenbanner-scaled.jpg',
@@ -24,59 +27,64 @@ const HomeScreen = () => {
     // ... add more images
   ];
 
-  // Function to fetch character data from backend
-  const fetchCharacterData = async () => {
-    console.log(user.token)
-    try {
-      const response = await axios.get('https://teman-ai-server-930de02b860a.herokuapp.com/characters/active/', {
-        headers: {
-          Authorization: `Bearer ${user.token}`, // Use the access token from the user object
-        },
-      });
-
-      setCharacterData(response.data.data); // Set character data from backend response
-    } catch (error) {
-      console.error('Error fetching character data:', error);
-      // Handle error appropriately
-    }
-  };
-
   // Use useEffect to fetch character data when component mounts
   useEffect(() => {
-    fetchCharacterData();
+    try {
+      setIsLoading(true); // Start loading
+      fetchActiveCharacters(user.token).then((data) => {
+        setCharacterData(data); // Update the state with the fetched data
+        setIsLoading(false); // Stop loading after data is fetched
+      })
+
+    } catch (error) {
+        console.error('Error while fetching data:', error);
+        setIsLoading(false);
+        // Handle the error appropriately (e.g., show a notification to the user)
+    }
   }, []); // Empty dependency array means this effect runs once on mount
 
 
   return (
+    <StyleWrapper>
     <View style={styles.container}>
-      <Swiper 
-        style={styles.wrapper} // Ensure the wrapper style is applied
-      >
-        {swiperImages.map((image, index) => (
-          <View key={index} style={styles.slide}>
-            <Image 
-              source={{ uri: image }} 
-              style={styles.image} 
-              resizeMode='contain' 
-            />
-          </View>
-        ))}
-      </Swiper>
-      <FlatList
-        data={characterData}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => navigation.navigate('Chat', { character: item })}>
-            <CharacterPreviewBar
-              name={item.name}
-              description={item.description}
-              profilePic={item.profilePic}
-            />
-          </TouchableOpacity>
+      <View
+        style={styles.wrapper} 
+        >
+        <Swiper 
+          // Ensure the wrapper style is applied
+        >
+          {swiperImages.map((image, index) => (
+            <View key={index} style={styles.slide}>
+              <Image 
+                source={{ uri: image }} 
+                style={styles.image} 
+                resizeMode='cover' 
+              />
+            </View>
+          ))}
+        </Swiper>
+      </View>
+      {isLoading ? (
+          <LoadingPlaceholder />
+        ) : (
+          <FlatList
+            data={characterData}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => navigation.navigate('Chat', { character: item })}>
+                <CharacterPreviewBar
+                  name={item.name}
+                  description={item.description}
+                  profilePic={item.pfp}
+                  id={item.id}
+                />
+              </TouchableOpacity>
+            )}
+            keyExtractor={item => item.id}
+          />
         )}
-        keyExtractor={item => item.id}
-      />
-      <TabBar isActive={true} />
+
     </View>
+    </StyleWrapper>
   );
 };
 
@@ -86,20 +94,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
   },
   wrapper: {
-    height: 100, // Adjust this to fit your desired swiper height
+    height: 200, // Adjust this to fit your desired swiper height
+    backgroundColor: '#121212', // Set the background color of the swiper
+    paddingTop: 10, // Add some padding to the top of the swiper
   },
   slide: {
-    flex: 1, // Ensure slide takes full height of its parent
-    justifyContent: 'center',
-    alignItems: 'center',
     borderRadius: 20,
+    borderColor: '#121212', // Set the border color
+    borderWidth: 2, // Set the border width
     overflow: 'hidden',
-    height: 100, // Ensure each slide is the same height as the swiper
+    height: "100%", // Ensure each slide is the same height as the swiper
+    width: '100%', // Match the width with the swiper
   },
   image: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    backgroundColor: '#FF0000', //red
+    resizeMode: 'cover',
     width: '100%',
     height: '100%', // Make image take full height of the slide
-    resizeMode: 'contain', // Change this to 'contain' to fit the whole image in the slide
   },
   characterPreviewBar: {
     backgroundColor: '#1F1F1F',

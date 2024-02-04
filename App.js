@@ -1,16 +1,15 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
-import HomeScreen from './components/HomeScreen';
-import DiscoverScreen from './components/DiscoverScreen';
 import AuthScreen from './components/AuthScreen';
-
 import { UserProvider } from './components/UserContext';
-
-import CharacterChatScreen from './components/CharacterChatScreen';
-
+import TabNavigator from './components/TabNavigator';
 import { StyleSheet,Easing } from 'react-native';
+import CharacterChatScreen from './components/CharacterChatScreen';
+import CharacterProfileScreen from './components/CharacterProfileScreen';
+import EditCharacterScreen from './components/EditCharacterScreen';
+import PackageScreen from './components/PackageScreen';
+import UserProfileScreen from './components/UserProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -19,6 +18,10 @@ const styles = StyleSheet.create({
     headerStyle: {
       backgroundColor: '#1F1F1F', // Dark background color for the header
     },
+    colors: {
+      background: '#191919',
+    },
+    
     headerTintColor: '#fff', // White color for the header title and buttons
     headerTitleStyle: {
       fontWeight: 'bold', // Optional: if you want the title to be bold
@@ -28,14 +31,10 @@ const styles = StyleSheet.create({
 
 
 
-
-
-
-
-
 export default function App() {
   return (
     <UserProvider>
+      
       <NavigationContainer>
         <Stack.Navigator
           screenOptions={{
@@ -50,29 +49,47 @@ export default function App() {
               ...leftToRightAnimation, // default iOS animation
             }}
           />
-          <Stack.Screen
+          <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
+          {/* <Stack.Screen
             name="Your Chats"
             component={HomeScreen}
             options={{
               ...leftToRightAnimation, // default iOS animation
             }}
-          />
+          /> */}
           <Stack.Screen
             name="Chat"
             component={CharacterChatScreen}
-            options={{
-              ...rightToLeftAnimation, // custom animation example
-            }}
+            // options={{
+            //   ...rightToLeftAnimation, // custom animation example
+            // }}
           />
           <Stack.Screen
+            name="CharacterProfile"
+            component={CharacterProfileScreen}
+          />
+          <Stack.Screen
+            name="EditCharacter"
+            component={EditCharacterScreen}
+          />
+          <Stack.Screen
+            name="Packages"
+            component={PackageScreen}
+          />
+          <Stack.Screen
+            name="Profile"
+            component={UserProfileScreen}
+          />
+          {/* <Stack.Screen
             name="Discover"
             component={DiscoverScreen}
             options={{
               ...rightToLeftAnimation // default iOS animation
             }}
-          />
+          /> */}
         </Stack.Navigator>
       </NavigationContainer>
+
     </UserProvider>
   );
 }

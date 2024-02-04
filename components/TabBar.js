@@ -6,6 +6,7 @@ import { CommonActions } from '@react-navigation/native';
 import React, { useState, useEffect } from 'react';
 import { Animated } from 'react-native';
 import { useRoute } from '@react-navigation/native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 
 
@@ -14,8 +15,8 @@ const TabBar = () => {
     const route = useRoute(); // Get current route
 
     const tabs = [
-      { name: 'Your Chats', icon: chatBubbleSVG },
-      { name: 'Discover', icon: magnifyingGlassSVG }
+      { name: 'Your Chats', icon: 'chat-bubble-outline' }, // Use the name of the icon
+      { name: 'Discover', icon: 'search' } // Use the name of the icon
     ];
 
     const handleNavigate = (routeName) => {
@@ -26,26 +27,31 @@ const TabBar = () => {
     };
 
     return (
-        <View style={styles.tabBarContainer}>
-        {tabs.map((tab, index) => (
-        <TouchableOpacity
-          key={index}
-          style={[
-            styles.tab,
-            route.name === tab.name && styles.activeTab // Apply activeTab styles if the tab is active
-          ]}
-          onPress={() => handleNavigate(tab.name)}
-        >
-          <View style={[
-            styles.iconContainer,
-            route.name === tab.name && styles.activeIconContainer // Apply activeIconContainer styles if the icon is active
-          ]}>
-            <SvgXml xml={tab.icon} width={24} height={24} fill={route.name === tab.name ? "white" : "white"} />
-          </View>
-          <Text style={styles.label}>{tab.name}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+    //     <View style={styles.tabBarContainer}>
+    //     {tabs.map((tab, index) => (
+    //     <TouchableOpacity
+    //       key={index}
+    //       style={[
+    //         styles.tab,
+    //         route.name === tab.name && styles.activeTab // Apply activeTab styles if the tab is active
+    //       ]}
+    //       onPress={() => handleNavigate(tab.name)}
+    //     >
+    //       <View style={[
+    //         styles.iconContainer,
+    //         route.name === tab.name && styles.activeIconContainer // Apply activeIconContainer styles if the icon is active
+    //       ]}>
+    //           <MaterialIcons 
+    //             name={tab.icon} 
+    //             size={24} 
+    //             color={route.name === tab.name ? "white" : "white"} 
+    //           />
+    //       </View>
+    //       <Text style={styles.label}>{tab.name}</Text>
+    //     </TouchableOpacity>
+    //   ))}
+    // </View>
+    <></>
     );
 };
 
