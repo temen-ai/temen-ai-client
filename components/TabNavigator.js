@@ -42,7 +42,6 @@ const tabStyle = {
 
 const TabNavigator = ({ navigation }) => {
   const { user } = useUser();
-  console.log(user,"hadeh");
   
   return (
     <Tab.Navigator

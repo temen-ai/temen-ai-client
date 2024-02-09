@@ -10,7 +10,6 @@ import CharacterProfileScreen from './components/CharacterProfileScreen';
 import EditCharacterScreen from './components/EditCharacterScreen';
 import PackageScreen from './components/PackageScreen';
 import UserProfileScreen from './components/UserProfileScreen';
-import EditProfileScreen from './components/EditProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -51,7 +50,13 @@ export default function App() {
             }}
           />
           <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
-
+          {/* <Stack.Screen
+            name="Your Chats"
+            component={HomeScreen}
+            options={{
+              ...leftToRightAnimation, // default iOS animation
+            }}
+          /> */}
           <Stack.Screen
             name="Chat"
             component={CharacterChatScreen}
@@ -75,12 +80,13 @@ export default function App() {
             name="Profile"
             component={UserProfileScreen}
           />
-
-          <Stack.Screen
-            name="EditProfile"
-            component={EditProfileScreen}
-          />
-
+          {/* <Stack.Screen
+            name="Discover"
+            component={DiscoverScreen}
+            options={{
+              ...rightToLeftAnimation // default iOS animation
+            }}
+          /> */}
         </Stack.Navigator>
       </NavigationContainer>
 

@@ -4,6 +4,7 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const CharacterPreviewBar = ({ name, description, profilePic, messages_count }) => {
+  const default_pfp = require("../assets/placeholderpfp.jpg")
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   
   const formatCount = (num) => {
@@ -19,7 +20,7 @@ const CharacterPreviewBar = ({ name, description, profilePic, messages_count }) 
         <View style={styles.placeholderImage} />
       )}
       <Image
-        source={{ uri: profilePic }}
+        source={profilePic ? { uri: profilePic } : default_pfp}
         style={isImageLoaded ? styles.profilePic : { ...styles.profilePic, opacity: 0 }}
         onLoad={() => setIsImageLoaded(true)}
       />

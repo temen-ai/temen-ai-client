@@ -2,16 +2,39 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Dimensions, Text, View, Image, TouchableOpacity, StyleSheet, KeyboardAvoidingView,Platform, FlatList,TextInput, ScrollView } from 'react-native';
 import { Share } from 'react-native';
 
-import { useUser } from './UserContext';
-import axios from 'axios';
-import StyleWrapper from './StyleWrapper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { updateCharacter } from '../helpers/characters';
+import StyleWrapper from './StyleWrapper';
+
+import { useUser } from './UserContext';
 
 const CharacterProfileScreen = ({ route, navigation }) => {
   const { character } = route.params; //data from previous data
+  const default_pfp = require("../assets/placeholderpfp.jpg")
+  const {user} = useUser();
 
   const handleEditPress = () => {
     navigation.navigate('EditCharacter', { character });
+  };
+
+  const handleCreatorPress = () => {
+    // Assuming 'character.created_by' is the user_id you want to pass
+    navigation.navigate('UserProfileScreen', { user_id: character.created_by });
+  };
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <MaterialIcons name="arrow-back" size={24} color="#FFF" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, character]);
+
+  const handleBackPress = () => {
+    // Navigate back and pass the character data
+    navigation.navigate('Chat', { character: character });
   };
 
   const handleSharePress = async () => {
@@ -43,24 +66,36 @@ const CharacterProfileScreen = ({ route, navigation }) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Image source={{ uri: character.pfp }} style={styles.profileImage} />
-      <Text style={styles.name}>{character.name}</Text>
-      <Text style={styles.description}>{character.description}</Text>
-      
-      {/* Buttons */}
-      <TouchableOpacity style={styles.button} onPress={handleEditPress}>
-        <Text style={styles.buttonText}>Edit Character</Text>
-      </TouchableOpacity>
+    <StyleWrapper>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Image source={character.pfp  ? { uri: character.pfp  } : default_pfp} style={styles.profileImage} />
+        <Text style={styles.name} numberOfLines={2} ellipsizeMode='tail'>{character.name}</Text>
+        <Text style={styles.description} numberOfLines={4} ellipsizeMode='tail'>{character.description}</Text>
 
-      <TouchableOpacity style={styles.button} onPress={handleSharePress}>
-        <Text style={styles.buttonText}>Share Character</Text>
-      </TouchableOpacity>
+        {/* Creator Information */}
+        {character.created_by && character.creator_username && (
+        <TouchableOpacity onPress={handleCreatorPress}>
+          <Text style={styles.creatorInfo}>
+            Temen-nya: @{character.creator_username || 'Unknown'}
+          </Text>
+        </TouchableOpacity>)}
+        
+        {/* Buttons */}
+        {/* Edit button is only shown if the user is the creator of the character */}
+        {user.id === character.created_by && (<>
+        <TouchableOpacity style={styles.button} onPress={handleEditPress}>
+          <Text style={styles.buttonText}>Edit Character</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handleNewChatPress}>
-        <Text style={styles.buttonText}>Start New Chat</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity style={styles.button} onPress={handleSharePress}>
+          <Text style={styles.buttonText}>Share Character</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.button} onPress={handleNewChatPress}>
+          <Text style={styles.buttonText}>Start New Chat</Text>
+        </TouchableOpacity></>)}
+      </ScrollView>
+    </StyleWrapper>
   );
 };
 
@@ -101,6 +136,12 @@ const styles = StyleSheet.create({
     color: '#fff', // Dark text on buttons for contrast
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  creatorInfo: {
+    fontSize: 14, // Smaller font size for creator info
+    color: '#0096FF', // Blue color for the text
+    fontStyle: 'italic', // Italicize the text
+    marginBottom: 20, // Margin bottom for spacing
   },
   // Additional styles for character details
 });

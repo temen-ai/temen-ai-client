@@ -9,6 +9,7 @@ import { useUser } from './UserContext';
 import { fetchActiveCharacters } from '../helpers/characters.js';
 import LoadingPlaceholder from './LoadingPlaceholder';
 import axios from 'axios';
+import { useFocusEffect } from '@react-navigation/native';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -17,9 +18,9 @@ const HomeScreen = () => {
 
   const { user } = useUser(); 
   //if user is not logged in, redirect to login screen
-  // if (!user) {
-  //     navigation.replace('Login');
-  // }
+  if (!user) {
+      navigation.replace('Login');
+  }
   // Sample data for the swiper and character list
   const swiperImages = [
     'https://www.temen.ai/wp-content/uploads/2024/01/temenbanner-scaled.jpg',
@@ -28,20 +29,24 @@ const HomeScreen = () => {
   ];
 
   // Use useEffect to fetch character data when component mounts
-  useEffect(() => {
-    try {
-      setIsLoading(true); // Start loading
-      fetchActiveCharacters(user.token).then((data) => {
-        setCharacterData(data); // Update the state with the fetched data
-        setIsLoading(false); // Stop loading after data is fetched
-      })
+  useFocusEffect( // Use useFocusEffect to fetch character data when the screen is focused
 
-    } catch (error) {
-        console.error('Error while fetching data:', error);
-        setIsLoading(false);
-        // Handle the error appropriately (e.g., show a notification to the user)
+    React.useCallback(() => {
+      try {
+        setIsLoading(true); // Start loading
+        fetchActiveCharacters(user.token).then((data) => {
+          setCharacterData(data); // Update the state with the fetched data
+          setIsLoading(false); // Stop loading after data is fetched
+        })
+
+      } catch (error) {
+          console.error('Error while fetching data:', error);
+          setIsLoading(false);
+          // Handle the error appropriately (e.g., show a notification to the user)
+      }
     }
-  }, []); // Empty dependency array means this effect runs once on mount
+  , [])
+  );
 
 
   return (

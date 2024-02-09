@@ -105,7 +105,9 @@ const AuthScreen = () => {
           </View>
         </KeyboardAvoidingView>
         :
-        <ActivityIndicator size="large" color="#1e90ff" />
+        <View style={styles.container}>
+          <ActivityIndicator size="large" color="#1e90ff" />
+        </View>
       }
     </StyleWrapper>
   );

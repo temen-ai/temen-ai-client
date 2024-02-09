@@ -13,6 +13,7 @@ import {fetchAllCharacters} from '../helpers/characters.js';
 import axios from 'axios';
 import { useUser } from './UserContext';
 import LoadingPlaceholderItem from './LoadingPlaceholderItem';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const DiscoverScreen = () => {
   const navigation = useNavigation();
@@ -20,7 +21,7 @@ const DiscoverScreen = () => {
   const [characterData, setCharacterData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(2);
+  const [itemsPerPage] = useState(20);
   const [hasMore, setHasMore] = useState(true);
 
   const { user } = useUser();
@@ -32,29 +33,14 @@ const DiscoverScreen = () => {
     }
   }, [user, navigation]);
 
-  const fetchMoreData = (page) => {
-    if (!hasMore) return;
+  const fetchPageData = (page) => {
     setIsLoading(true);
     const offset = (page - 1) * itemsPerPage;
 
     fetchAllCharacters(user.token, searchTerm, itemsPerPage, offset)
       .then((newData) => {
-        if (newData.length < itemsPerPage) {
-          setHasMore(false);
-        }
-        if (searchTerm) {
-          // If searching, reset character data with new data
-          setCharacterData(newData);
-        } else {
-          // If not searching, filter out duplicates
-          setCharacterData(prevData => {
-            const combinedData = [...prevData, ...newData];
-            const uniqueData = combinedData.filter((item, index, self) =>
-              index === self.findIndex((t) => (t.id === item.id))
-            );
-            return uniqueData;
-          });
-        }
+        setHasMore(newData.length === itemsPerPage);
+        setCharacterData(newData);
         setCurrentPage(page);
       })
       .catch((error) => {
@@ -64,6 +50,21 @@ const DiscoverScreen = () => {
         setIsLoading(false);
       });
   };
+
+  const handlePreviousPage = () => {
+    const newPage = Math.max(1, currentPage - 1);
+    fetchPageData(newPage);
+  };
+
+  const handleNextPage = () => {
+    if (hasMore) {
+      fetchPageData(currentPage + 1);
+    }
+  };
+
+  useEffect(() => {
+    fetchPageData(1); // Fetch first page initially
+  }, [searchTerm]);
 
   // onChangeText handler for the search input
   const handleSearchChange = (text) => {
@@ -78,17 +79,6 @@ const DiscoverScreen = () => {
   };
   
 
-  useEffect(() => {
-    setHasMore(true);
-    fetchMoreData(1);
-  }, [searchTerm]);
-
-  const handleEndReached = () => {
-    if (!isLoading && hasMore) {
-      fetchMoreData(currentPage + 1);
-    }
-  };
-
   return (
     <StyleWrapper>
       <View style={styles.container}>
@@ -99,6 +89,17 @@ const DiscoverScreen = () => {
           value={searchTerm}
           onChangeText={handleSearchChange}          
         />
+
+        {/* Pagination buttons using MaterialIcons */}
+        <View style={styles.paginationContainer}>
+          <TouchableOpacity onPress={handlePreviousPage} disabled={currentPage === 1}>
+            <MaterialIcons name="navigate-before" size={30} color={currentPage === 1 ? 'grey' : 'white'} />
+          </TouchableOpacity>
+          <Text style={styles.pageNumber}>Page {currentPage}</Text>
+          <TouchableOpacity onPress={handleNextPage} disabled={!hasMore}>
+            <MaterialIcons name="navigate-next" size={30} color={!hasMore ? 'grey' : 'white'} />
+          </TouchableOpacity>
+        </View>
 
         <FlatList
           data={characterData}
@@ -114,9 +115,7 @@ const DiscoverScreen = () => {
             </TouchableOpacity>
           )}
           keyExtractor={item => item.id.toString()}
-          onEndReached={handleEndReached}
-          onEndReachedThreshold={0.1}
-          ListFooterComponent={isLoading && <LoadingPlaceholderItem />}
+          
         />
       </View>
     </StyleWrapper>
@@ -166,6 +165,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    padding: 10,
+  },
+  pageNumber: {
+    color: 'white',
+    fontSize: 16,
+  },
+  paginationButton: {
+    color: 'white',
+    fontSize: 16,
   },
 
 });

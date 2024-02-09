@@ -1,23 +1,69 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+
+import { getPackages, getPurchaseLink } from '../helpers/packages';
+
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
+
+import StyleWrapper from './StyleWrapper';
+import { useUser } from './UserContext';
+
 
 const PackageScreen = () => {
-  const packages = [
-    { id: 1, name: 'PRO 1 Month', price: '49.000', description: 'Short description', promotion: '59.000' },
-    // ... Add more packages as needed
-  ];
 
-  const handlePress = (id) => {
-    console.log("Package ID:", id);
-    // Add functionality for handling press here
+  const [packages, setPackages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { user } = useUser();
+  
+  useEffect(() => {
+    setIsLoading(true);
+    getPackages(user.token)
+      .then((data) => {
+        setPackages(data);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error while fetching packages:', error);
+        setIsLoading(false);
+      });
+  }, []);
+
+
+  const redirectToPurchase = (id) => {
+    setIsLoading(true);
+    getPurchaseLink(user.token ,id)
+      .then((data) => {
+        console.log(data);
+        setIsLoading(false);
+        if (data && data.redirectUrl) {
+          Linking.openURL(data.redirectUrl)
+            .catch(err => {
+              console.error('An error occurred', err);
+            });
+        }
+      })
+      .catch((error) => {
+        setIsLoading(false);
+        console.error('Error while fetching purchase link:', error);
+      });
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {packages.map((pkg) => (
-        <PackageCard key={pkg.id} data={pkg} onPress={() => handlePress(pkg.id)} />
-      ))}
-    </ScrollView>
+    <StyleWrapper>
+      
+      {isLoading ?        
+        <View style={styles.container}>
+          <ActivityIndicator size="large" color="#1e90ff" />
+        </View>
+        :
+        <ScrollView style={styles.container}>
+          <ProPlanBenefits />
+          {packages?.map((pkg) => (
+            <PackageCard key={pkg.id} data={pkg} onPress={() => redirectToPurchase(pkg.id)} />
+          ))}
+        </ScrollView>
+      }
+    </StyleWrapper>
   );
 };
 
@@ -30,6 +76,19 @@ const PackageCard = ({ data, onPress }) => (
     </View>
     <Text style={styles.description}>{data.description}</Text>
   </TouchableOpacity>
+);
+
+const ProPlanBenefits = () => (
+  <View style={styles.proPlanContainer}>
+    <Text style={styles.proPlanTitle}>Dapatkan fitur lengkap dengan Temen.AI PRO!</Text>
+    <Text style={styles.proPlanDescription}>
+      Upgrade ke Pro untuk mendapatkan:
+    </Text>
+    <Text style={styles.proPlanBenefit}>- Chatting sepuasnya dengan respon lebih cepat!</Text>
+    <Text style={styles.proPlanBenefit}>- Buatlah gambar dengan AI</Text>
+    <Text style={styles.proPlanBenefit}>- Update dan Fitur Baru</Text>
+    <Text style={styles.proPlanBenefit}>- </Text>
+  </View>
 );
 
 const styles = StyleSheet.create({
@@ -70,6 +129,30 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 16,
     color: '#aaa',
+  },
+
+  proPlanContainer: {
+    backgroundColor: '#2a2a2a', // Adjust the color as needed
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  proPlanTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  proPlanDescription: {
+    fontSize: 16,
+    color: '#ddd',
+    marginBottom: 10,
+  },
+  proPlanBenefit: {
+    fontSize: 14,
+    color: '#bbb',
+    marginBottom: 5,
   },
   // Add more styles as needed
 });

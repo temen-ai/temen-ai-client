@@ -6,6 +6,8 @@ import StyleWrapper from './StyleWrapper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {sendMessageToAI, fetchMessagesData} from '../helpers/messages.js';
 
+const default_pfp = require("../assets/placeholderpfp.jpg")
+
 const CharacterChatScreen = ({ route, navigation }) => {
   const { character } = route.params;
   const [messages, setMessages] = useState([]);
@@ -23,11 +25,32 @@ const CharacterChatScreen = ({ route, navigation }) => {
 
 
   useEffect(() => {
-    fetchMessagesData(user.token,character.id).then((data) => {
-      setMessages(data);
-    })
-      
-  }, []); // Empty dependency array means this effect runs once on mount
+    const fetchAndSetMessages = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchMessagesData(user.token, character.id);
+        
+        // If character has a welcome message, prepend it to the fetched messages
+        if (character.welcome_message) {
+          const welcomeMessage = {
+            id: "welcome-message", // Use a unique identifier for the welcome message
+            sent_by: character.id,
+            message: character.welcome_message
+          };
+          setMessages([welcomeMessage, ...data]);
+        } else {
+          setMessages(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+        // Handle error (e.g., show an error message)
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAndSetMessages();
+  }, [character.id, user.token]); // Depend on character.id and user.token to refetch messages if these values change
 
 
 
@@ -47,16 +70,24 @@ const CharacterChatScreen = ({ route, navigation }) => {
       setInputText(''); // Clear input field after adding message
     
       try {
-        sendMessageToAI(user.token,characterId,userPrompt).then((data) => {
-          setMessages(prevMessages => [
-            ...prevMessages,
-            ...data.data.map(item => ({
-              ...item,
-              id: Date.now().toString(), // Ensure a unique ID
-            })),
-          ]);
-          setIsLoading(false)
-        })
+        sendMessageToAI(user.token, characterId, userPrompt).then((data) => {
+          // Check if data.data is defined and is an array
+          console.log(data)
+          if ((data)) {
+            setMessages(prevMessages => [
+              ...prevMessages,
+              data
+            ]);
+          } else {
+            // Handle the case where data.data is not an array, e.g., log an error or set an error state
+            console.error('data.data is not an array');
+          }
+          setIsLoading(false);
+        }).catch((error) => {
+          console.error('Error sending message:', error);
+          setIsLoading(false);
+        });
+        
       } catch (error) {
         console.error('Error fetching character data:', error);
         setIsLoading(false)
@@ -71,10 +102,10 @@ const CharacterChatScreen = ({ route, navigation }) => {
     return (
       <View style={messageContainerStyle}>
         {isCharacterMessage && (
-          <Image source={{ uri: character.pfp }} style={styles.smallProfilePic} />
+          <Image source={character.pfp ? { uri: character.pfp }: default_pfp} style={styles.smallProfilePic} />
         )}
         <View style={[styles.chatBubble, isCharacterMessage ? styles.characterMessage : styles.userMessage]}>
-          <Text style={styles.messageText}>{formatText(item.message)}</Text>
+          <Text style={styles.messageText} selectable={true}>{formatText(item.message)}</Text>
         </View>
       </View>
     );
@@ -100,10 +131,10 @@ const CharacterChatScreen = ({ route, navigation }) => {
         //character variable holds the character data to pass on to next component
         <TouchableOpacity onPress={() => navigation.navigate('CharacterProfile', {character})} style={isDesktop ? styles.headerTitleDesktop : styles.headerTitle}>
           <Image
-            source={{ uri: character.pfp }}
+            source={character.pfp ? { uri: character.pfp }: default_pfp}
             style={styles.profilePic}
           />
-          <Text style={styles.headerText}>{character.name}</Text>
+          <Text style={styles.headerText} numberOfLines={2} ellipsizeMode='tail'>{character.name}</Text>
         </TouchableOpacity>
       ),
       // Optionally, set other options as needed
@@ -138,7 +169,7 @@ const CharacterChatScreen = ({ route, navigation }) => {
     return (
           <View style={styles.characterMessageContainer}>
 
-            <Image source={{ uri: character.pfp }} style={styles.smallProfilePic} />
+            <Image source={character.pfp ? { uri: character.pfp }: default_pfp} style={styles.smallProfilePic} />
 
             <View style={[styles.chatBubble, styles.characterMessage]}>
               <Text style={styles.loadingText}>{dots}</Text>
@@ -228,13 +259,13 @@ const styles = StyleSheet.create({
   userMessage: {
     margin: 10,
     padding: 10,
-    backgroundColor: '#d1edf2',
+    backgroundColor: '#00497e',
     alignSelf: 'flex-end',
     borderRadius: 10,
   },
-
   messageText: {
     fontSize: 16,
+    color: '#fff',
   },
 
   backButtonText: {
@@ -282,13 +313,14 @@ const styles = StyleSheet.create({
     marginLeft: 25, // Adjust as needed
   },
   loadingText: {
-    color: '#000',
+    color: '#fff',
     fontSize: 16,
   },
   characterMessageContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     margin: 10,
+
   },
   userMessageContainer: {
     flexDirection: 'row',
@@ -296,10 +328,11 @@ const styles = StyleSheet.create({
     margin: 10,
   },
   smallProfilePic: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 35,
+    height: 35,
+    borderRadius: 5,
     marginRight: 5,
+    marginTop:12
   },
   chatBubble: {
     maxWidth: '80%', // Adjust as needed
@@ -309,12 +342,12 @@ const styles = StyleSheet.create({
   characterMessage: {
     margin: 10,
     padding: 10,
-    backgroundColor: '#fde4cf',
+    backgroundColor: '#212429',
     alignSelf: 'flex-start',
     borderRadius: 10,
   },
   userMessage: {
-    backgroundColor: '#d1edf2',
+    backgroundColor: '#00497e',
     alignSelf: 'flex-end',
   },
 });
